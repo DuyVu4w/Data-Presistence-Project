@@ -16,6 +16,7 @@ public class MainManager : MonoBehaviour
 
     public Text ScoreText;
     public GameObject GameOverText;
+    public Text BestScoreText;
 
     private bool m_Started = false;
     private int m_Points;
@@ -23,8 +24,22 @@ public class MainManager : MonoBehaviour
     private bool m_GameOver = false;
 
     // Start is called before the first frame update
+
+    private SaveData data = new SaveData();
+    private void Awake()
+    {
+        // check main scene is exist player name obj
+        GameObject playerNameController = GameObject.Find("Player Name");
+        if (playerNameController == null)
+        {
+            // return menu sence if not exist player name
+            SceneManager.LoadScene(0);
+        }
+    }
+
     void Start()
     {
+        LoadBestScore();
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
 
@@ -39,6 +54,15 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+    }
+
+    private void LateUpdate()
+    {
+        if (m_Started && m_Points > data.points)
+        {
+            SaveBestScore();
+            LoadBestScore();
+        }    
     }
 
     private void Update()
@@ -75,7 +99,6 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
-        SaveBestScore();
     }
 
     public void SaveBestScore()
@@ -86,10 +109,35 @@ public class MainManager : MonoBehaviour
 
         string json = JsonUtility.ToJson(data);
         Debug.Log(json);
-        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+        File.WriteAllText(Application.persistentDataPath + "/savefile2.json", json);
         Debug.Log(Application.persistentDataPath);
     }
 
+    public void LoadBestScore()
+    {
+        string path = Application.persistentDataPath + "/savefile2.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            if (json != "")
+            {
+                data = JsonUtility.FromJson<SaveData>(json);
+            }
+            else
+            {
+                data.playerName = "";
+                data.points = 0;
+            }
+            // Update Best Score Text
+            BestScoreText.text = "Best score: " + data.points + " Name: " + data.playerName;
+            return;
+        }
+
+        data.playerName = "";
+        data.points = 0;
+        BestScoreText.text = "Best score: " + data.points + " Name: " + data.playerName;
+    }
+        
     [System.Serializable]
     class SaveData
     {
